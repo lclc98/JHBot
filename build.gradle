@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '5.1.0'
+    id 'com.google.cloud.tools.jib' version '1.4.0'
+}
+
+version = "${project_version}" + getBuildNumber()
+group = "${project_group}"
+archivesBaseName = "${project_name}"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.discord4j:discord4j-core:3.0.7'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'JHBot',
+                'Main-Class': 'com.plumealerts.jhbot.JHBot'
+    }
+}
+
+jib {
+    from {
+        image = 'openjdk:alpine'
+    }
+    to {
+        image = "lclc98/jhbot"
+        tags = ['latest']
+        auth {
+            username = System.getenv("DOCKER_USERNAME")
+            password = System.getenv("DOCKER_PASSWORD")
+        }
+    }
+    container {
+        jvmFlags = ['-Xms512m']
+    }
+}
+
+static String getBuildNumber() {
+    return System.getenv("BUILD_NUMBER") ?: System.getenv("TRAVIS_BUILD_NUMBER") ?: "0"
+}
