@@ -27,9 +27,6 @@ jar {
 }
 
 jib {
-    from {
-        image = 'openjdk:8-alpine'
-    }
     to {
         image = "lclc98/jhbot"
         tags = ['latest']
