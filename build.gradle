@@ -28,7 +28,7 @@ jar {
 
 jib {
     to {
-        image = "lclc98/jhbot"
+        image = "lclc98/jhbot:" + version
         tags = ['latest']
         auth {
             username = System.getenv("DOCKER_USERNAME")
