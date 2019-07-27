@@ -28,7 +28,7 @@ jar {
 
 jib {
     from {
-        image = 'openjdk:alpine'
+        image = 'openjdk:8-alpine'
     }
     to {
         image = "lclc98/jhbot"
