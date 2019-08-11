@@ -13,61 +13,53 @@ import discord4j.core.object.util.Snowflake;
 import java.util.Optional;
 
 public class JHBot {
-
-    private static Snowflake ROLE_LIVE_STREAMERS = Snowflake.of(529218769067966465L);
-    private static Snowflake BULLTG = Snowflake.of(109142456913674240L);
+    private static final Snowflake USER_BULLTG = Snowflake.of(109142456913674240L);
+    private static final Snowflake SERVER_BULLTG = Snowflake.of(431695013555208193L);
+    private static final Snowflake ROLE_LIVE_STREAMERS = Snowflake.of(529218769067966465L);
+    private DiscordClient client;
 
     public static void main(String[] args) {
         new JHBot().start();
     }
 
-    public void start() {
-        final DiscordClient client = new DiscordClientBuilder(System.getenv("TOKEN")).build();
-        client.getEventDispatcher().on(ReadyEvent.class)
-                .subscribe(ready -> {
-                    System.out.println("Logged in as " + ready.getSelf().getUsername());
-                    Guild guild = client.getGuildById(Snowflake.of(431695013555208193L)).block();
-                    if (guild != null) {
-                        guild.getMembers().toStream().forEach(member -> {
-                            if (member.getId().equals(BULLTG))
-                                return;
-                            try {
-                                Presence presence = member.getPresence().block();
-                                if (presence != null && addOrRemoveStreamingRole(presence)) {
-                                    member.addRole(ROLE_LIVE_STREAMERS).block();
-                                    return;
-                                }
-                                if (member.getRoleIds().contains(ROLE_LIVE_STREAMERS))
-                                    member.removeRole(ROLE_LIVE_STREAMERS).block();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    }
-                });
-
-        client.getEventDispatcher().on(PresenceUpdateEvent.class)
-                .subscribe(presenceUpdateEvent -> {
-                    Member member = presenceUpdateEvent.getMember().block();
-                    if (member != null && !member.getId().equals(BULLTG)) {
-                        if (addOrRemoveStreamingRole(presenceUpdateEvent.getCurrent())) {
-                            member.addRole(ROLE_LIVE_STREAMERS).block();
-                        } else if (member.getRoleIds().contains(ROLE_LIVE_STREAMERS)) {
-                            member.removeRole(ROLE_LIVE_STREAMERS).block();
-                        }
-                    }
-                });
-
-        client.login().block();
+    private void start() {
+        this.client = new DiscordClientBuilder(System.getenv("TOKEN")).build();
+        this.client.getEventDispatcher().on(ReadyEvent.class).subscribe(this::ready);
+        this.client.getEventDispatcher().on(PresenceUpdateEvent.class).subscribe(this::presenceUpdate);
+        this.client.login().block();
     }
 
-    public boolean addOrRemoveStreamingRole(Presence presence) {
-        Optional<Activity> a = presence.getActivity();
-        if (a.isPresent()) {
-            Activity activity = a.get();
-            Optional<String> streamingUrl = activity.getStreamingUrl();
-            return streamingUrl.isPresent();
+    private void ready(ReadyEvent event) {
+        System.out.println("Logged in");
+        Guild guild = this.client.getGuildById(SERVER_BULLTG).block();
+        if (guild == null)
+            return;
+        guild.getMembers().toStream().forEach(member -> {
+            if (member.getId().equals(USER_BULLTG)) return;
+            checkAndUpdatePresence(member, member.getPresence().block());
+        });
+    }
+
+    private void presenceUpdate(PresenceUpdateEvent event) {
+        if (event.getUserId().equals(USER_BULLTG)) return;
+        Member member = event.getMember().block();
+        if (member != null) {
+            checkAndUpdatePresence(member, event.getCurrent());
         }
-        return false;
+    }
+
+    public void checkAndUpdatePresence(Member member, Presence presence) {
+        if (presence != null) {
+            Optional<Activity> optionalActivity = presence.getActivity();
+            if (optionalActivity.isPresent()) {
+                Activity activity = optionalActivity.get();
+                if (activity.getStreamingUrl().isPresent()) {
+                    member.addRole(ROLE_LIVE_STREAMERS).block();
+                    return;
+                }
+            }
+        }
+        if (member.getRoleIds().contains(ROLE_LIVE_STREAMERS))
+            member.removeRole(ROLE_LIVE_STREAMERS).block();
     }
 }
