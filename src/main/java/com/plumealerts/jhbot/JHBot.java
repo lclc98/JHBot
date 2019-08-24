@@ -31,21 +31,16 @@ public class JHBot {
 
     private void ready(ReadyEvent event) {
         System.out.println("Logged in");
-        Guild guild = this.client.getGuildById(SERVER_BULLTG).block();
-        if (guild == null)
-            return;
-        guild.getMembers().toStream().forEach(member -> {
-            if (member.getId().equals(USER_BULLTG)) return;
-            checkAndUpdatePresence(member, member.getPresence().block());
-        });
+        this.client.getGuildById(SERVER_BULLTG)
+                .flatMapMany(Guild::getMembers)
+                .filter(member -> !member.getId().equals(USER_BULLTG))
+                .subscribe(member -> member.getPresence().subscribe(presence -> checkAndUpdatePresence(member, presence)));
     }
 
     private void presenceUpdate(PresenceUpdateEvent event) {
         if (event.getUserId().equals(USER_BULLTG)) return;
-        Member member = event.getMember().block();
-        if (member != null) {
-            checkAndUpdatePresence(member, event.getCurrent());
-        }
+        event.getMember()
+                .subscribe(member -> checkAndUpdatePresence(member, event.getCurrent()));
     }
 
     public void checkAndUpdatePresence(Member member, Presence presence) {
@@ -54,12 +49,12 @@ public class JHBot {
             if (optionalActivity.isPresent()) {
                 Activity activity = optionalActivity.get();
                 if (activity.getStreamingUrl().isPresent()) {
-                    member.addRole(ROLE_LIVE_STREAMERS).block();
+                    member.addRole(ROLE_LIVE_STREAMERS).subscribe();
                     return;
                 }
             }
         }
         if (member.getRoleIds().contains(ROLE_LIVE_STREAMERS))
-            member.removeRole(ROLE_LIVE_STREAMERS).block();
+            member.removeRole(ROLE_LIVE_STREAMERS).subscribe();
     }
 }
