@@ -1,9 +1,9 @@
 plugins {
     id 'java'
-    id 'com.google.cloud.tools.jib' version '1.4.0'
+    id 'com.google.cloud.tools.jib' version '1.6.1'
 }
 
-version = "${project_version}" + getBuildNumber()
+version = "${project_version}" + getBuildNumber() + isSnapshot()
 group = "${project_group}"
 archivesBaseName = "${project_name}"
 
@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.discord4j:discord4j-core:3.0.8'
+    implementation 'com.discord4j:discord4j-core:3.0.9'
 }
 
 jar {
@@ -28,6 +28,7 @@ jar {
 jib {
     to {
         image = "plumealerts/jhbot:" + version
+        tags = ['latest' + isSnapshot()]
         auth {
             username = System.getenv("DOCKER_USERNAME")
             password = System.getenv("DOCKER_PASSWORD")
@@ -39,5 +40,9 @@ jib {
 }
 
 static String getBuildNumber() {
-    return System.getenv("BUILD_NUMBER") ?: System.getenv("TRAVIS_BUILD_NUMBER") ?: "0"
+    return System.getenv("TRAVIS_BUILD_NUMBER") ?: System.getenv("BUILD_NUMBER") ?: "0"
+}
+
+static String isSnapshot() {
+    return System.getenv("TRAVIS_BRANCH") != "master" ? "-snapshot" : ""
 }
