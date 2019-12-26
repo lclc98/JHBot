@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.discord4j:discord4j-core:3.0.11'
+    implementation 'com.discord4j:discord4j-core:3.0.12'
 }
 
 jar {
