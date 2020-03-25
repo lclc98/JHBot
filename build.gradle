@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'com.discord4j', name: 'discord4j-core', version: '3.0.12'
+    implementation group: 'com.discord4j', name: 'discord4j-core', version: '3.0.13'
     implementation group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.18'
 }
 
