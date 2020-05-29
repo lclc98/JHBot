@@ -3,7 +3,7 @@ plugins {
     id 'com.google.cloud.tools.jib' version '2.3.0'
 }
 
-version = "${project_version}" + getBuildNumber() + isSnapshot()
+version = "${project_version}" + (isSnapshot() ? '.' + getBuildNumber() : '')
 group = "${project_group}"
 archivesBaseName = "${project_name}"
 
@@ -31,7 +31,7 @@ jar {
 jib {
     to {
         image = "plumealerts/jhbot:" + version
-        tags = ['latest' + isSnapshot()]
+        tags = ['latest' + (isSnapshot() ? "-snapshot" : '')]
         auth {
             username = System.getenv("DOCKER_USERNAME")
             password = System.getenv("DOCKER_PASSWORD")
@@ -43,9 +43,13 @@ jib {
 }
 
 static String getBuildNumber() {
-    return System.getenv("TRAVIS_BUILD_NUMBER") ?: System.getenv("BUILD_NUMBER") ?: "0"
+    return System.getenv("GITHUB_RUN_NUMBER") ?: "0"
 }
 
-static String isSnapshot() {
-    return System.getenv("TRAVIS_BRANCH") != "master" ? "-snapshot" : ""
+static boolean isSnapshot() {
+    String ref = System.getenv("GITHUB_REF");
+    if (ref != null && ref.startsWith("refs/tags/v")) {
+        return false
+    }
+    return true
 }
