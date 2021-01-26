@@ -3,8 +3,8 @@ package com.plumealerts.jhbot.command;
 import com.github.twitch4j.kraken.domain.KrakenUser;
 import com.github.twitch4j.kraken.domain.KrakenUserList;
 import com.plumealerts.jhbot.JHBot;
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.util.Snowflake;
 
 import java.util.Arrays;
 import java.util.List;
@@ -18,7 +18,7 @@ public class UserCommand implements Command {
             if (!event.getMember().get().getId().equals(Snowflake.of(139667487057772545L))) {
                 return;
             }
-            String content = event.getMessage().getContent().orElse("");
+            String content = event.getMessage().getContent();
             final List<String> command = Arrays.asList(content.split(" "));
 
             Future<KrakenUserList> queue = JHBot.getClient().getKraken().getUsersByLogin(Arrays.asList(command.get(1))).queue();
