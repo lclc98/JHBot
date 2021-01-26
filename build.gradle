@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'com.google.cloud.tools.jib' version '2.5.0'
+    id 'com.google.cloud.tools.jib' version '2.7.1'
 }
 
 version = "${project_version}" + (isSnapshot() ? '.' + getBuildNumber() : '')
@@ -13,7 +13,7 @@ targetCompatibility = 1.8
 repositories {
     mavenCentral()
     jcenter()
-    maven { url "https://oss.jfrog.org/artifactory/libs-release"}
+    maven { url "https://oss.jfrog.org/artifactory/libs-release" }
 }
 
 dependencies {
@@ -33,8 +33,8 @@ jib {
         image = "plumealerts/jhbot:" + version
         tags = ['latest' + (isSnapshot() ? "-snapshot" : '')]
         auth {
-            username = System.getenv("DOCKER_USERNAME")
-            password = System.getenv("DOCKER_PASSWORD")
+            username = System.getenv("DOCKER_USERNAME") ?: ''
+            password = System.getenv("DOCKER_PASSWORD") ?: ''
         }
     }
     container {
