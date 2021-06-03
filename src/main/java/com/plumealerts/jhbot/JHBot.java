@@ -4,6 +4,7 @@ import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.plumealerts.jhbot.command.Command;
 import com.plumealerts.jhbot.command.PingCommand;
+import com.plumealerts.jhbot.command.WhitelistCommand;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.DiscordClientBuilder;
@@ -15,15 +16,15 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
+import nl.vv32.rcon.Rcon;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class JHBot {
-    private static final Snowflake USER_BULLTG = Snowflake.of(109142456913674240L);
-    private static final Snowflake SERVER_BULLTG = Snowflake.of(431695013555208193L);
-    private static final Snowflake ROLE_LIVE_STREAMERS = Snowflake.of(529218769067966465L);
+
     private GatewayDiscordClient gateway;
     private static TwitchClient twitchClient;
 
@@ -31,6 +32,7 @@ public class JHBot {
 
     static {
         commands.put("ping", new PingCommand());
+        commands.put("whitelist", new WhitelistCommand());
 //        commands.put("user", new UserCommand());
     }
 
@@ -40,7 +42,7 @@ public class JHBot {
     }
 
     private void start() {
-        DiscordClient client = DiscordClient.create(System.getenv("TOKEN"));
+        DiscordClient client = DiscordClient.create(Constants.TOKEN);
         this.gateway = client.login().block();
         this.gateway.getEventDispatcher().on(ReadyEvent.class).subscribe(this::ready);
         this.gateway.getEventDispatcher().on(PresenceUpdateEvent.class).subscribe(this::presenceUpdate);
@@ -58,14 +60,14 @@ public class JHBot {
 
     private void ready(ReadyEvent event) {
         System.out.println("Logged in");
-        this.gateway.getGuildById(SERVER_BULLTG)
+        this.gateway.getGuildById(Constants.SERVER_BULLTG)
                 .flatMapMany(Guild::getMembers)
-                .filter(member -> !member.getId().equals(USER_BULLTG))
+                .filter(member -> !member.getId().equals(Constants.USER_BULLTG))
                 .subscribe(member -> member.getPresence().subscribe(presence -> checkAndUpdatePresence(member, presence)));
     }
 
     private void presenceUpdate(PresenceUpdateEvent event) {
-        if (event.getUserId().equals(USER_BULLTG)) return;
+        if (event.getUserId().equals(Constants.USER_BULLTG)) return;
         event.getMember().subscribe(member -> checkAndUpdatePresence(member, event.getCurrent()));
     }
 
@@ -75,13 +77,13 @@ public class JHBot {
             if (optionalActivity.isPresent()) {
                 Activity activity = optionalActivity.get();
                 if (activity.getStreamingUrl().isPresent()) {
-                    member.addRole(ROLE_LIVE_STREAMERS).subscribe();
+                    member.addRole(Constants.ROLE_LIVE_STREAMERS).subscribe();
                     return;
                 }
             }
         }
-        if (member.getRoleIds().contains(ROLE_LIVE_STREAMERS))
-            member.removeRole(ROLE_LIVE_STREAMERS).subscribe();
+        if (member.getRoleIds().contains(Constants.ROLE_LIVE_STREAMERS))
+            member.removeRole(Constants.ROLE_LIVE_STREAMERS).subscribe();
     }
 
     public static TwitchClient getClient() {
