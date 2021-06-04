@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'com.google.cloud.tools.jib' version '2.7.1'
+    id 'com.google.cloud.tools.jib' version '3.0.0'
 }
 
 version = "${project_version}" + (isSnapshot() ? '.' + getBuildNumber() : '')
@@ -19,6 +19,12 @@ dependencies {
     implementation group: 'com.discord4j', name: 'discord4j-core', version: '3.1.5'
     implementation group: 'com.github.twitch4j', name: 'twitch4j', version: '1.4.0'
     implementation group: 'nl.vv32.rcon', name: 'rcon', version: '1.0.3'
+
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.34.0'
+    implementation group: 'org.flywaydb', name: 'flyway-core', version: '7.7.2'
+    implementation group: 'org.jooq', name: 'jooq', version: '3.14.11'
+    implementation group: 'org.jooq', name: 'jooq-codegen', version: '3.14.11'
+
 }
 
 jar {

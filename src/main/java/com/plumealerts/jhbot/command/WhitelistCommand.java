@@ -1,14 +1,23 @@
 package com.plumealerts.jhbot.command;
 
 import com.plumealerts.jhbot.Constants;
+import com.plumealerts.jhbot.db.tables.records.MinecraftWhitelistRecord;
+import com.plumealerts.jhbot.minecraft.MinecraftUUID;
+import com.plumealerts.jhbot.minecraft.MinecraftUtil;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.channel.MessageChannel;
-import nl.vv32.rcon.Rcon;
+import org.jetbrains.annotations.Nullable;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import static com.plumealerts.jhbot.db.Tables.MINECRAFT_WHITELIST;
 
 public class WhitelistCommand implements Command {
     @Override
@@ -17,10 +26,8 @@ public class WhitelistCommand implements Command {
         if (!channel.getId().equals(Constants.CHANNEL_MINECRAFT)) {
             return;
         }
-        if (!event.getMember().get().hasHigherRoles(Collections.singleton(Constants.ROLE_MODS)).block() && !event.getMember().get().getId().equals(Constants.USER_LCLC98)) {
-            return;
-        }
 
+        Member member = event.getMember().get();
         String content = event.getMessage().getContent();
         final List<String> command = Arrays.asList(content.split(" "));
 
@@ -32,7 +39,7 @@ public class WhitelistCommand implements Command {
         String subcommand = command.get(1);
         if (subcommand.equalsIgnoreCase("list")) {
             try {
-                channel.createMessage(WhitelistCommand.sendRcon("whitelist list")).block();
+                channel.createMessage(Constants.sendRcon("whitelist list")).block();
             } catch (IOException | RuntimeException e) {
                 e.printStackTrace();
                 channel.createMessage("Failed to list the whitelist").block();
@@ -43,8 +50,12 @@ public class WhitelistCommand implements Command {
                 return;
             }
             try {
-                String username = command.get(2);
-                channel.createMessage(WhitelistCommand.sendRcon("whitelist add " + username)).block();
+                MinecraftUUID user = MinecraftUtil.getUser(command.get(2));
+                if (user == null) {
+                    channel.createMessage("Can't find minecraft user").block();
+                    return;
+                }
+                addUser(channel, member.getId().asString(), member.getUsername(), user);
             } catch (IOException | RuntimeException e) {
                 e.printStackTrace();
                 channel.createMessage("Failed to add to the whitelist").block();
@@ -52,14 +63,40 @@ public class WhitelistCommand implements Command {
         }
     }
 
+    public boolean removeOldUser(MessageChannel channel, String discordId, String uuid) throws IOException {
+        DSLContext create = DSL.using(Constants.DB_CONNECTION, SQLDialect.SQLITE);
+        @Nullable MinecraftWhitelistRecord result = create.selectFrom(MINECRAFT_WHITELIST)
+                .where(MINECRAFT_WHITELIST.DISCORD_ID.eq(discordId).or(MINECRAFT_WHITELIST.MINECRAFT_UUID.eq(uuid)))
+                .fetchAny();
+        if (result != null) {
+            if (result.getMinecraftUuid().equalsIgnoreCase(uuid)) {
+                return false;
+            }
 
-    private static String sendRcon(String command) throws IOException {
-        try (Rcon rcon = Rcon.open(Constants.RCON_IP, Integer.parseInt(Constants.RCON_PORT))) {
-            if (rcon.authenticate(Constants.RCON_PASSWORD)) {
-                return rcon.sendCommand(command);
-            } else {
-                throw new RuntimeException("Failed to authenticate");
+            create.delete(MINECRAFT_WHITELIST)
+                    .where(MINECRAFT_WHITELIST.DISCORD_ID.eq(discordId))
+                    .execute();
+            try {
+                Constants.sendRcon("whitelist remove " + result.value1());
+            } catch (IOException e) {
+                channel.createMessage("Failed to remove user " + result.value1()).block();
+                throw e;
             }
         }
+        return true;
     }
+
+    public void addUser(MessageChannel channel, String discordId, String discordUsername, MinecraftUUID user) throws IOException {
+        if (removeOldUser(channel, discordId, user.getId())) {
+            DSLContext create = DSL.using(Constants.DB_CONNECTION, SQLDialect.SQLITE);
+            create.insertInto(MINECRAFT_WHITELIST,
+                    MINECRAFT_WHITELIST.DISCORD_ID, MINECRAFT_WHITELIST.DISCORD_USERNAME, MINECRAFT_WHITELIST.MINECRAFT_UUID, MINECRAFT_WHITELIST.MINECRAFT_USERNAME)
+                    .values(discordId, discordUsername, user.getId(), user.getName())
+                    .execute();
+            channel.createMessage(Constants.sendRcon("whitelist add " + user.getName())).block();
+        } else {
+            channel.createMessage("You cannot add an existing minecraft username").block();
+        }
+    }
+
 }
