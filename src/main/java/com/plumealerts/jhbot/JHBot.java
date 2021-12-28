@@ -1,13 +1,8 @@
 package com.plumealerts.jhbot;
 
-import com.github.twitch4j.TwitchClient;
-import com.github.twitch4j.TwitchClientBuilder;
 import com.plumealerts.jhbot.command.Command;
 import com.plumealerts.jhbot.command.PingCommand;
-import com.plumealerts.jhbot.command.WhitelistCommand;
-import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
-import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.PresenceUpdateEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
@@ -16,9 +11,7 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
-import nl.vv32.rcon.Rcon;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -26,14 +19,11 @@ import java.util.Optional;
 public class JHBot {
 
     private GatewayDiscordClient gateway;
-    private static TwitchClient twitchClient;
 
     private static final Map<String, Command> commands = new HashMap<>();
 
     static {
         commands.put("ping", new PingCommand());
-        commands.put("whitelist", new WhitelistCommand());
-//        commands.put("user", new UserCommand());
     }
 
 
@@ -84,15 +74,5 @@ public class JHBot {
         }
         if (member.getRoleIds().contains(Constants.ROLE_LIVE_STREAMERS))
             member.removeRole(Constants.ROLE_LIVE_STREAMERS).subscribe();
-    }
-
-    public static TwitchClient getClient() {
-        if (twitchClient == null) {
-            twitchClient = TwitchClientBuilder.builder()
-                    .withEnableKraken(true)
-                    .build();
-        }
-
-        return twitchClient;
     }
 }
