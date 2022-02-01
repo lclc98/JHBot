@@ -11,6 +11,8 @@ import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.presence.Activity;
 import discord4j.core.object.presence.Presence;
+import discord4j.gateway.intent.Intent;
+import discord4j.gateway.intent.IntentSet;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +35,8 @@ public class JHBot {
 
     private void start() {
         DiscordClient client = DiscordClient.create(Constants.TOKEN);
-        this.gateway = client.login().block();
+        this.gateway = client.gateway().setEnabledIntents(IntentSet.of(Intent.GUILD_MEMBERS)).login().block();
+
         this.gateway.getEventDispatcher().on(ReadyEvent.class).subscribe(this::ready);
         this.gateway.getEventDispatcher().on(PresenceUpdateEvent.class).subscribe(this::presenceUpdate);
         this.gateway.getEventDispatcher().on(MessageCreateEvent.class).subscribe(event -> {
@@ -50,8 +53,7 @@ public class JHBot {
 
     private void ready(ReadyEvent event) {
         System.out.println("Logged in");
-        this.gateway.getGuildById(Constants.SERVER_BULLTG)
-                .flatMapMany(Guild::getMembers)
+        this.gateway.getGuildMembers(Constants.SERVER_BULLTG)
                 .filter(member -> !member.getId().equals(Constants.USER_BULLTG))
                 .subscribe(member -> member.getPresence().subscribe(presence -> checkAndUpdatePresence(member, presence)));
     }
